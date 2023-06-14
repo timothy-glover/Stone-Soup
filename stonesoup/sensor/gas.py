@@ -13,7 +13,7 @@ from ..types.numeric import Probability
 
 class GasIntensitySensor(Sensor):
 
-    noise: float = Property(default=0.6)
+    noise: float = Property(default=1e-5)
 
     missed_detection_probability: Probability = Property(
         default=0.1,
@@ -21,7 +21,7 @@ class GasIntensitySensor(Sensor):
     )
 
     sensing_threshold: float = Property(
-        default=0.1,
+        default=1e-5,
         doc="Measurement threshold. Should be set high enough to minimise false detections."
     )
 
@@ -32,7 +32,7 @@ class GasIntensitySensor(Sensor):
 
         detections = set()
         for truth in ground_truths:
-            if (noise and np.random.rand > self.missed_detection_probability) or not noise:
+            if (noise and np.random.rand() > self.missed_detection_probability) or not noise:
                 measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
             else:
                 measurement_vector = StateVector([[0.0]])

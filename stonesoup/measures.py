@@ -423,9 +423,7 @@ class KLDivergence(Measure):
         """
         if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
             if len(state1.particles) == len(state2.particles):
-                kld = 0
-                for ii in range(0, len(state1.particles)):
-                    kld += math.exp(state1.log_weight[ii])*(state1.log_weight[ii] - state2.log_weight[ii])
+                kld = np.sum(np.exp(state1.log_weight)*(state1.log_weight - state2.log_weight))
             else:
                 raise ValueError('The input objects different number of particles.')
         else:

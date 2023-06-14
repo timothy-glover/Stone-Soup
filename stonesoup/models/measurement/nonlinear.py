@@ -1257,7 +1257,7 @@ class PasquilGaussianPlume(GaussianModel):
     """Pasquil Gaussian Plume model
     """
 
-    noise: float = Property(default=0.6)
+    noise: float = Property(default=0.0)
 
     translation_offset: StateVector = Property(
         default=None,
@@ -1270,7 +1270,7 @@ class PasquilGaussianPlume(GaussianModel):
     )
 
     sensing_threshold: float = Property(
-        default=0.1,
+        default=1e-4,
         doc="Measurement threshold. Should be set high enough to minimise false detections."
     )
 
@@ -1325,10 +1325,10 @@ class PasquilGaussianPlume(GaussianModel):
 
         p_m = self.missed_detection_probability
         nd_sigma = 1e-4 + state1.state_vector
-        if state1.state_vector < self.sensing_threshold:
-            pdf = p_m + ((1-p_m) * 1/2 * (1+erf((self.sensing_threshold - state1.state_vector)
-                                                     / (nd_sigma * sqrt(2)))))
-            likelihood = np.atleast_1d(np.log(pdf))
+        if state1.state_vector[0] < self.sensing_threshold:
+            pdf = p_m + ((1-p_m) * 1/2 * (1+erf((self.sensing_threshold - state2.state_vector)
+                                                / (nd_sigma * sqrt(2)))))
+            likelihood = np.atleast_1d(np.log(pdf)).view(np.ndarray)
         else:
             likelihood = np.atleast_1d(
                 multivariate_normal.logpdf(
