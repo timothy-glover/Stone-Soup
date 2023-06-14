@@ -11,6 +11,7 @@ from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
+from ..regulariser import Regulariser
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -28,6 +29,8 @@ class ParticleUpdater(Updater):
     """
 
     resampler: Resampler = Property(default=None, doc='Resampler to prevent particle degeneracy')
+    regulariser: Regulariser = Property(default=None,
+                                        doc='Regulariser to prevent particle impoverishment')
 
     def update(self, hypothesis, **kwargs):
         """Particle Filter update step
@@ -61,6 +64,11 @@ class ParticleUpdater(Updater):
         # Resample
         if self.resampler is not None:
             predicted_state = self.resampler.resample(predicted_state)
+
+        if self.regulariser is not None:
+            predicted_state = self.regulariser.regularise(predicted_state.parent,
+                                                          predicted_state,
+                                                          {hypothesis.measurement})
 
         return Update.from_state(
             state=hypothesis.prediction,
