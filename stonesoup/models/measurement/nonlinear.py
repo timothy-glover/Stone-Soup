@@ -1477,7 +1477,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         where :math:`\sigma_{\text{percentage}}` = :attr:`standard_deviation_percentage`
         and :math:`\nu_{\text{min}}` = :attr:`noise`. In the
         event that a measurement is below the sensor threshold or
-        missed, a different liklihood function is used. This is
+        missed, a different likelihood function is used. This is
         given by
 
         .. math::
