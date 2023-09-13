@@ -1,7 +1,9 @@
 import copy
 import numpy as np
 from scipy.stats import multivariate_normal, uniform
+from typing import Callable
 
+from ..base import Property
 from .base import Regulariser
 from ..functions import cholesky_eps
 from ..types.state import ParticleState
@@ -26,6 +28,15 @@ class MCMCRegulariser(Regulariser):
 
     .. [2] Ristic, Branco & Arulampalam, Sanjeev & Gordon, Neil, Beyond the Kalman Filter:
         Particle Filters for Target Tracking Applications, Artech House, 2004. """
+
+    constraint_func: Callable = Property(
+        default=None,
+        doc="Callable, user defined function for applying "
+            "constraints to particle states. This is done by reverting "
+            "that are moved to a state outside of the defined constraints "
+            "back to the state prior to the move step. Particle states that are "
+            "input are assumed to be constrained."
+    )
 
     def regularise(self, prior, posterior, detections):
         """Regularise the particles
@@ -68,6 +79,11 @@ class MCMCRegulariser(Regulariser):
             # move particles
             moved_particles.state_vector = moved_particles.state_vector + \
                 hopt * cholesky_eps(covar_est) @ np.random.randn(ndim, nparticles)
+
+            # Apply constraints if defined
+            if self.constraint_func is not None:
+                part_indx = self.constraint_func(moved_particles)
+                moved_particles.state_vector[:, part_indx] = posterior.state_vector[:, part_indx]
 
             # Evaluate likelihoods
             part_diff = moved_particles.state_vector - prior.state_vector

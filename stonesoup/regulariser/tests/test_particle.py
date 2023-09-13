@@ -1,5 +1,6 @@
 import numpy as np
 import datetime
+import pytest
 
 from ...types.state import ParticleState
 from ...types.particle import Particle
@@ -11,7 +12,23 @@ from ...types.update import ParticleStateUpdate
 from ..particle import MCMCRegulariser
 
 
-def test_regulariser():
+def dummy_constraint_function(particles):
+    part_indx = particles.state_vector[1, :] > 20
+    return part_indx
+
+
+@pytest.mark.parametrize(
+    "constraint_func",
+    [
+        (
+            None  # constraint_func
+        ), (
+            dummy_constraint_function
+        )
+    ],
+    ids=["no_constraint_func", "constraint_func"]
+)
+def test_regulariser(constraint_func):
     particles = ParticleState(state_vector=None, particle_list=[Particle(np.array([[10], [10]]),
                                                                          1 / 9),
                                                                 Particle(np.array([[10], [20]]),
@@ -42,7 +59,7 @@ def test_regulariser():
                                                               measurement=measurement,
                                                               measurement_prediction=meas_pred),
                                        particle_list=particles.particle_list, timestamp=timestamp)
-    regulariser = MCMCRegulariser()
+    regulariser = MCMCRegulariser(constraint_func=constraint_func)
 
     # state check
     new_particles = regulariser.regularise(particles, state_update, measurement)
@@ -52,6 +69,10 @@ def test_regulariser():
     assert any(new_particles.weight == state_update.weight)
     # Check that the timestamp is the same
     assert new_particles.timestamp == state_update.timestamp
+    # Check that moved particles have been reverted back to original states if constrained
+    if constraint_func is not None:
+        indx = constraint_func(prediction)  # likely unconstrained particles
+        assert np.all(new_particles.state_vector[:, indx] == prediction.state_vector[:, indx])
 
     # list check
     new_particles = regulariser.regularise(particles.particle_list, state_update.particle_list,
