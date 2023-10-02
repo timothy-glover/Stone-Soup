@@ -1373,7 +1373,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
 
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
-           `False`, in which case no noise will be added
+            `False`, in which case no noise will be added
             if 'True', the output of :meth:`~.Model.rvs` is added). If `False`,
             then the model also does not consider the :attr:`sensing_threshold`
             and :attr:`missed_detection_probability`
@@ -1442,9 +1442,10 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
             likelihood = np.atleast_1d(np.log(pdf)).view(np.ndarray)
         else:
             d_sigma = self.standard_deviation_percentage * pred_meas + self.min_noise
-            likelihood = np.atleast_1d(np.log(1/(d_sigma*np.sqrt(2*np.pi)) *
-                                              np.exp((-(state1.state_vector-pred_meas)
-                                                     ** 2)/(2*d_sigma**2)))).view(np.ndarray)
+            with np.errstate(divide="ignore"):
+                likelihood = np.atleast_1d(np.log(1/(d_sigma*np.sqrt(2*np.pi)) *
+                                                  np.exp((-(state1.state_vector-pred_meas)
+                                                         ** 2)/(2*d_sigma**2)))).view(np.ndarray)
 
         if len(likelihood) == 1:
             likelihood = likelihood[0]
