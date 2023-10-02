@@ -11,11 +11,13 @@ from ...types.array import StateVectors
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
 from ...types.particle import Particle
+from ...types.state import ParticleState
 from ...types.prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction)
 from ...updater.particle import (
     ParticleUpdater, GromovFlowParticleUpdater,
     GromovFlowKalmanParticleUpdater)
+from ...regulariser.particle import MCMCRegulariser
 
 
 def dummy_constraint_function(particles):
@@ -28,7 +30,9 @@ def dummy_constraint_function(particles):
         partial(ParticleUpdater, resampler=SystematicResampler()),
         GromovFlowParticleUpdater,
         GromovFlowKalmanParticleUpdater,
-        partial(ParticleUpdater, constraint_func=dummy_constraint_function)))
+        partial(ParticleUpdater, constraint_func=dummy_constraint_function),
+        partial(ParticleUpdater, resampler=SystematicResampler(), regulariser=MCMCRegulariser()),
+        partial(ParticleUpdater, regulariser=MCMCRegulariser())))
 def updater(request):
     updater_class = request.param
     measurement_model = LinearGaussian(
@@ -51,8 +55,10 @@ def test_particle(updater):
                  ]
 
     prediction = ParticleStatePrediction(None, particle_list=particles,
-                                         timestamp=timestamp)
-    measurement = Detection([[20.0]], timestamp=timestamp)
+                                         timestamp=timestamp,
+                                         parent=ParticleState(None, particle_list=particles))
+    measurement = Detection([[15.0]], timestamp=timestamp,
+                            measurement_model=updater.measurement_model)
     eval_measurement_prediction = ParticleMeasurementPrediction(None, particle_list=[
                                             Particle(i.state_vector[0, :], 1 / 9)
                                             for i in particles],
@@ -79,6 +85,8 @@ def test_particle(updater):
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
     if hasattr(updater, 'constraint_func') and updater.constraint_func is not None:
-        assert np.allclose(updated_state.mean, StateVectors([[20.0], [15.0]]), rtol=2e-2)
+        assert np.allclose(updated_state.mean, StateVectors([[15.0], [15.0]]), rtol=2e-2)
     else:
-        assert np.allclose(updated_state.mean, StateVectors([[20.0], [20.0]]), rtol=2e-2)
+        if not hasattr(updater, 'regulariser') or updater.regulariser is None:
+            # Skip state check for regularised version
+            assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=2e-2)
