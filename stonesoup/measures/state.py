@@ -442,24 +442,37 @@ class KLDivergence(Measure):
             Kullback–Leibler divergence from ``state1`` to ``state2``
 
         """
-        if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
-            if len(state1.particles) == len(state2.particles):
+        # if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
+        #     if len(state1.particles) == len(state2.particles):
+        #
+        #         log_term = np.zeros(state1.log_weight.shape)
+        #
+        #         invalid_indx = (np.isinf(state1.log_weight) | np.isnan(state1.log_weight)
+        #                         | np.isinf(state2.log_weight) | np.isnan(state2.log_weight))
+        #
+        #         # Do not consider NANs and inf in the subtraction
+        #         log_term[~invalid_indx] = state1.log_weight[~invalid_indx] \
+        #             - state2.log_weight[~invalid_indx]
+        #
+        #         # kld = np.sum(np.exp(state1.log_weight)*log_term)
+        #         kld = np.exp(state1.log_weight)@log_term
+        #     else:
+        #         raise ValueError(f'The input sizes are not compatible '
+        #                          f'({len(state1.particles)} != {len(state2.particles)})')
+        # else:
+        #     raise NotImplementedError('This measure is currently only compatible with '
+        #                               'ParticleState types')
 
-                log_term = np.zeros(state1.log_weight.shape)
+        log_term = np.zeros(state1.log_weight.shape)
 
-                invalid_indx = (np.isinf(state1.log_weight) | np.isnan(state1.log_weight)
-                                | np.isinf(state2.log_weight) | np.isnan(state2.log_weight))
+        invalid_indx = (np.isinf(state1.log_weight) | np.isnan(state1.log_weight)
+                        | np.isinf(state2.log_weight) | np.isnan(state2.log_weight))
 
-                # Do not consider NANs and inf in the subtraction
-                log_term[~invalid_indx] = state1.log_weight[~invalid_indx] \
-                    - state2.log_weight[~invalid_indx]
+        # Do not consider NANs and inf in the subtraction
+        log_term[~invalid_indx] = state1.log_weight[~invalid_indx] \
+                                  - state2.log_weight[~invalid_indx]
 
-                kld = np.sum(np.exp(state1.log_weight)*log_term)
-            else:
-                raise ValueError(f'The input sizes are not compatible '
-                                 f'({len(state1.particles)} != {len(state2.particles)})')
-        else:
-            raise NotImplementedError('This measure is currently only compatible with '
-                                      'ParticleState types')
+        # kld = np.sum(np.exp(state1.log_weight)*log_term)
+        kld = np.exp(state1.log_weight) @ log_term
 
         return kld
