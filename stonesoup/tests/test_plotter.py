@@ -17,9 +17,11 @@ from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.types.state import GaussianState, State
+from stonesoup.types.state import GaussianState, State, StateVector
 from stonesoup.types.track import Track
 from stonesoup.updater.kalman import KalmanUpdater
+from stonesoup.platform.base import Obstacle
+
 
 # Setup simulation to test the plotter functionality
 start_time = datetime.now()
@@ -129,6 +131,18 @@ def plotter_class(request):
         yield _generate_animated_plotterly
     else:
         raise ValueError("Invalid Plotter type.")
+
+
+shape = np.array([[-2, -2, 2, 2], [-2, 2, 2, -2]])
+obstacle_list = [Obstacle(shape_data=shape,
+                          states=State(StateVector([[0], [0]])),
+                          position_mapping=(0, 1)),
+                 Obstacle(shape_data=shape,
+                          states=State(StateVector([[0], [5]])),
+                          position_mapping=(0, 1)),
+                 Obstacle(shape_data=shape,
+                          states=State(StateVector([[5], [0]])),
+                          position_mapping=(0, 1))]
 
 
 # Test functions
@@ -260,6 +274,7 @@ def test_animated_plotterly():
     plotter = AnimatedPlotterly(timesteps)
     plotter.plot_ground_truths(truth, [0, 2])
     plotter.plot_measurements(true_measurements, [0, 2])
+    plotter.plot_obstacles(obstacle_list)
     plotter.plot_tracks(track, [0, 2], uncertainty=True, plot_history=True)
 
 
@@ -289,6 +304,7 @@ def test_plotterly_empty():
     plotter.plot_ground_truths(set(), [0, 2])
     plotter.plot_measurements(set(), [0, 2])
     plotter.plot_tracks(set(), [0, 2])
+    plotter.plot_obstacles(set(), [0, 1])
     with pytest.raises(TypeError):
         plotter.plot_tracks(set())
     with pytest.raises(ValueError):
@@ -316,6 +332,8 @@ def test_plotterly_2d():
     plotter2d.plot_measurements(true_measurements, [0, 2])
     plotter2d.plot_tracks(track, [0, 2], uncertainty=True)
     plotter2d.plot_sensors(sensor2d)
+    plotter2d.plot_obstacles(obstacle_list)
+    plotter2d.plot_obstacles(obstacle_list[0])
 
 
 def test_plotterly_3d():
@@ -504,3 +522,25 @@ def test_plotter_plot_measurements_label(_measurements, expected_labels):
     plotter.plot_measurements(_measurements, [0, 2])
     actual_labels = set(plotter.legend_dict.keys())
     assert actual_labels == expected_labels
+
+
+@pytest.fixture(scope="module", params=[
+    Plotter(), Plotterly(), AnimationPlotter(), AnimatedPlotterly(timesteps=timesteps)])
+def plotters(request):
+    return request.param
+
+
+@pytest.fixture(scope="module", params=[obstacle_list[0], obstacle_list])
+def obstacles(request):
+    return request.param
+
+
+def test_obstacles(plotters, obstacles):
+    if isinstance(plotters, AnimationPlotter):
+        with pytest.raises(NotImplementedError):
+            plotters.plot_obstacles(obstacles)
+    else:
+        plotters.plot_ground_truths(truth, [0, 1])
+        plotters.plot_measurements(all_measurements, [0, 1])
+        plotters.plot_tracks(track, [0, 1])
+        plotters.plot_obstacles(obstacles)
