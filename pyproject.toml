@@ -87,6 +87,9 @@ ehm = [
 optuna = [
     "optuna",
 ]
+shapely = [
+    "shapely"
+]
 
 [tool.setuptools]
 include-package-data = false
